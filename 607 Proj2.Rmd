@@ -1,0 +1,230 @@
+---
+title: "607 Project 2"
+author: "Chris Ayre"
+date: "3/10/2019"
+output: html_document
+---
+
+
+# {.tabset}
+
+## Project 2 Assignment
+
+Choose any three of the “wide” datasets identified in the Week 6 Discussion items. (You may use your own dataset; please don’t use my Sample Post dataset, since that was used in your Week 6 assignment!) For each of the three chosen datasets:
+
+(a) Create a .CSV file (or optionally, a MySQL database!) that includes all of the information included in the dataset. You’re encouraged to use a “wide” structure similar to how the information appears in the discussion item, so that you can practice tidying and transformations as described below.
+
+(b) Read the information from your .CSV file into R, and use tidyr and dplyr as needed to tidy and transform your data. [Most of your grade will be based on this step!]
+
+(c) Perform the analysis requested in the discussion item.
+
+(d) Your code should be in an R Markdown file, posted to rpubs.com, and should include
+narrative descriptions of your data cleanup work, analysis, and conclusions.
+
+
+
+load the required libraries
+ 
+```{r}
+require(stringr) 
+require(dplyr)
+require(tidyr)
+require(ggplot2)
+require(readr)
+```
+
+
+## 1 AvocadoPrices
+Load AvocadoPrices.csv posted by Samriti
+
+```{r}
+Avocado_Prices <- read_csv("~/Google Drive/CUNY SPRING 19/COURSES/data 607/ASSIGNMENTS/607 proj2/AvocadoPrices.csv")
+```
+
+__Identify the names of the columns__ 
+```{r}
+names(Avocado_Prices)
+```
+
+__Select the useful columns therefore eliminating the unlabelled data, also reducing the table to one type of observation in order to be compliant with tidy data. Rename the columns to more accurate descriptions.__
+```{r}
+Avocado_Prices_bag <- Avocado_Prices %>% 
+  select(Date, "Small Bags", "Large Bags", "XLarge Bags", "Total Bags") %>%
+  rename(Week = Date, Small = "Small Bags", Large = "Large Bags", XLarge = "XLarge Bags", Total = "Total Bags")
+Avocado_Prices_bag[1:10,]
+```
+
+__Moved from wide to long. Now each variable has its own column and each observation has its own row.__
+
+```{r}
+AvocadoPricesResult <- Avocado_Prices_bag %>% 
+  gather(`Bag Size`, Total, Small:XLarge)
+AvocadoPricesResult[1:10,]
+
+```
+
+
+
+\huge ANALYSIS
+
+
+Identify the best and worst times of the year to buy hash avocados
+```{r}
+AvocadoPricesResult %>%
+ arrange(Total) %>% 
+  slice(1:5)
+
+AvocadoPricesResult %>%
+ arrange(desc(Total)) %>% 
+  slice(1:3)
+```
+
+__The best time to buy Avocados in 2018 was late October through early December. While the worst time to buy Avocados in 2018, was mid May and early February.The prices were sky high!__
+
+
+
+
+
+
+
+
+
+
+## 2 TopBooks
+
+Load TopBooks.csv posted by Henry
+
+__Observe column name and charcteristics__
+```{r}
+Top_Books <- read_csv("~/Google Drive/CUNY SPRING 19/COURSES/data 607/ASSIGNMENTS/607 proj2/TopBooks.csv")
+Top_Books[1:10,]
+```
+
+_The laws of tidy data indicate that each observation needs to be in its own table. However this data is more useful in a single table; it is easier to analyze and draw conclusions._
+
+
+__Change the class of the price column so it can be easily analyzed later on.__
+```{r}
+Top_Books$price <- as.numeric(Top_Books$price)
+```
+
+
+__Select the Columns I will be working with then rename to add uppercase to Headers and more accurate naming.__
+```{r}
+TopBooksResult <- Top_Books %>% 
+  select(title, author, genre, type, price) %>%
+  rename(Title = title, Author = author, Genre = genre, Format = type, Price = price)
+TopBooksResult[1:10,]
+```
+
+\huge ANALYSIS
+
+Henry would like to find the cheapest printed books on the table of best sellers he provided.
+
+```{r}
+cheapbooks <- TopBooksResult %>%
+  filter(Format == "Paperback") %>%
+  arrange((Price))  
+  cheapbooks[1:2,]
+```
+__The cheapest paperback best sellers are The Negro Motorist Green-Book and Man's search for meaning.__
+
+My daughter loves to read hardcover books, and the only available appropriate genre is Literature and fiction. 
+```{r}
+mybooks <- TopBooksResult %>%
+  filter(Format == "Hardcover", Genre == "Literature & Fiction")
+  mybooks
+```
+__The only hardcover book within the Literature and Fiction genre is Where the Crawdads Sing__
+
+
+I like to read hardcover books but I dont want to pay hardcover price. How do Hardcover books compare to paperback in terms of price.
+```{r}
+hardcoverbookprice <- TopBooksResult %>%
+  filter(Format == "Hardcover")
+paperbackbookprice <- TopBooksResult %>%
+  filter(Format == "Paperback")
+
+plot(hardcoverbookprice$Price, type="o", col="blue")
+lines(paperbackbookprice$Price, type="o", pch=22, lty=2, col="red")
+
+legend(20, c("hardcover","paperback"), cex=0.8, 
+   col=c("blue","red"), pch=21:22, lty=1:2)
+```
+
+
+## 3 ScienceProj
+
+load ScienceProj.csv posted by Chris Ayre
+```{r}
+Science_Proj <- read_csv("~/Google Drive/CUNY SPRING 19/COURSES/data 607/ASSIGNMENTS/607 proj2/ScienceProj.csv")
+Science_Proj[1:10,]
+```
+
+
+__Rename in preparation for the (7) minute Columns to be converted to a single minute column, Each Variable must have its own column for the table to be tidy.__
+```{r}
+Science_Proj <- Science_Proj %>% 
+  rename(Color = color, "0" = "minute 0", "10" = "minute 10", "20" = "minute 20", "30" = "minute 30", "40" = "minute 40", "50" = "minute 50", "60" = "minute 60", Phase = phase)
+Science_Proj[1:10,]
+```
+
+
+__Convert the table from wide to tall by consolidating 7 minute columns to one. All recorded observations now have their own row.__
+```{r}
+Science_Proj_tall <- Science_Proj %>% 
+  gather(`Minute`, Temperature, "0":"60")
+Science_Proj_tall[1:10,]
+```
+
+__The table contains two different types of observations; heating and cooling. Tidy criteria requires each type of data to be in a single table. First we will create a new table from the observations which occurred during the heating phase of the experiment__
+```{r}
+Science_Proj_heating <- Science_Proj_tall %>%
+  slice(1:5, 11:15, 21:25, 31:35, 41:45, 51:55, 61:65)
+Science_Proj_heating[1:10,]
+```
+
+__ Create another table from the observations which occurred during the cooling phase of the experiment__
+```{r}
+Science_Proj_cooling <- Science_Proj_tall %>%
+  slice(6:10, 16:20, 26:30, 36:40, 46:50, 56:60, 66:70)
+Science_Proj_cooling[1:10,]
+```
+
+
+\huge ANALYSIS
+
+
+Compare how the colors red and pink absorb heat
+```{r}
+#identify the heating data on red and pink
+Science_Proj_heating %>%
+ filter(Color == "red")
+
+Science_Proj_heating %>%
+ filter(Color == "green")
+```
+__Red absorbed more heat than green at each 10 minute interval throughout the experiment__
+
+
+```{r}
+# define vectors from heating data
+green <- c(78, 81, 85, 91, 95,102,105)
+red <- c(78,82,90,93,98,106,109)
+
+# Graph red, Label X and Y axis
+plot(red, type="o",xlab="Minutes",ylab="Temperature", col="red", ylim=c(70,120))
+
+# Make x axis using labels
+axis(1, at=1:7, lab=c("0","10","20","30","40", "50","60"))
+
+# Graph green
+lines(green, type="o", pch=22, lty=2, col="green")
+
+# Create a title with a red, bold/italic font
+title(main="Heat Absorption - Red vs Green", col.main="blue", font.main=4)
+
+```
+
+
+ 
